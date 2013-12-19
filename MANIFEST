@@ -1,4 +1,4 @@
-examples-piglow-colours.pl
+examples/piglow-colours.pl
 examples/piglow-rotate.pl
 examples/piglow_party.pl
 lib/Device/PiGlow.pm
@@ -8,3 +8,4 @@ MANIFEST			This list of files
 README.md
 t/00-load.t
 t/01-basic.t
+Changes
