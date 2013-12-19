@@ -353,6 +353,67 @@ sub set_arm
     }
 }
 
+=item colour_table
+
+This returns a Hash reference mapping the names of the coloured LEDs
+to the groups of LEDs of that colour.
+
+The delegate colours returns the keys, get_colour_leds returns the
+list of LEDs
+
+=cut
+
+
+has colour_table => (
+		    is =>  'ro',
+                    isa => 'HashRef',
+                    traits => [qw(Hash)],
+                    handles => {
+                      get_colour_leds => 'get',
+                      colours	=>	'keys',
+                    },
+                    auto_deref	=> 1,
+                    lazy	=> 1,
+ 		    builder	=> '_get_colour_table',
+                 );
+
+sub _get_colour_table
+{
+   return {
+		white	=> [5,11,17],
+                blue	=> [4,10,16],
+                green   => [3,9,15],
+                yellow  => [2,8,14],
+                orange  => [1,7,13],
+                red     => [0,6,12]     ,
+          };
+}
+
+=item set_colour
+
+Sets the LEDs in the specified "colour" of the PiGlow to the specified value.
+
+Value has gamma correction applied.  
+
+Update isn't applied and the update method should be called when all the
+required updates have been performed.
+
+=cut
+
+
+sub set_colour
+{
+    my ( $self, $colour, $value ) = @_;
+
+    if ( defined $colour)
+    {
+         if ( defined (my $colour_leds = $self->get_colour_leds($colour) ))
+         {
+            $self->set_leds($colour_leds, $value);
+         }
+    }
+}
+
 =item gamma_table
 
 This is a map of input PWM values (0 - 255) to gamma corrected values
