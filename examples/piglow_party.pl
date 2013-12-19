@@ -21,7 +21,7 @@ $SIG{INT} = sub {
 while (1 )
 {
     print "Writing\n";
-    $pg->write_all_leds($values);
+    $pg->write_all_leds($values,1 );
     my $first = shift @{$values};
     push @{$values}, $first;
     sleep 1;

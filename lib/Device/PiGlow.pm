@@ -204,17 +204,217 @@ calls C<update> to apply the values to the LEDs.
 
 The array must be exactly 18 elements long.
 
+The optional second argument will cause the gamma correction to be applied
+if the value is true.
+
 =cut
 
 sub write_all_leds
 {
-   my ( $self, $values ) = @_;
+   my ( $self, $values, $fix ) = @_;
 
    if ( @{$values} == 18 )
    {
+       if ( $fix )
+       {
+          $values = $self->gamma_fix_values($values);
+       }
        $self->write_block_data(CMD_SET_PWM_VALUES, $values);
        $self->update();
    }
+}
+
+=item set_leds
+
+This sets the leds specified in the array reference in the first argument
+( values 0 - 17 to index the LEDs ) all to the single value specified.
+
+Gamma adjustment is applied. 
+
+This does not call update, this should be done afterwards in order to
+update the LED values.
+
+=cut
+
+sub set_leds
+{
+    my ( $self, $leds, $value ) = @_;
+
+    if (defined $leds && ( $value >= 0 && $value <= 255 ))
+    {
+        $value = $self->map_gamma($value);
+        foreach my $led ( @{$leds} )
+        {
+	   if ( $led >= 0 && $led <= 17 )
+           {
+              $self->_write_byte($self->get_led_register($led), $value);
+           }
+        }
+    }
+}
+
+=item led_table
+
+This provides a mapping between the logical order of the leds (indexed 
+0 - 17 ) to the registers that control them.
+
+=cut
+
+has led_table => (
+		    is =>  'ro',
+                    isa => 'ArrayRef',
+                    traits => [qw(Array)],
+                    handles => {
+                      get_led_register => 'get',
+                    },
+                    auto_deref	=> 1,
+                    lazy	=> 1,
+ 		    builder	=> '_get_led_table',
+                 );
+
+# "0x07", "0x08", "0x09", "0x06", "0x05", "0x0A", "0x12", "0x11",
+# "0x10", "0x0E", "0x0C", "0x0B", "0x01", "0x02", "0x03", "0x04", "0x0F", "0x0D"
+sub _get_led_table
+{
+   my ( $self ) = @_;
+
+   return [
+             CMD_SET_PWM_VALUE_7,
+             CMD_SET_PWM_VALUE_8,
+             CMD_SET_PWM_VALUE_9,
+             CMD_SET_PWM_VALUE_6,
+             CMD_SET_PWM_VALUE_5,
+             CMD_SET_PWM_VALUE_10,
+             CMD_SET_PWM_VALUE_18,
+             CMD_SET_PWM_VALUE_17,
+             CMD_SET_PWM_VALUE_16,
+             CMD_SET_PWM_VALUE_14,
+             CMD_SET_PWM_VALUE_12,
+             CMD_SET_PWM_VALUE_11,
+             CMD_SET_PWM_VALUE_1,
+             CMD_SET_PWM_VALUE_2,
+             CMD_SET_PWM_VALUE_3,
+             CMD_SET_PWM_VALUE_4,
+             CMD_SET_PWM_VALUE_15,
+             CMD_SET_PWM_VALUE_13,
+          ];
+}
+
+=item arm_table
+
+This returns an Array Ref of Array references that reference the LEDs in
+each "arm" of the PiGlow.
+
+=cut
+
+has arm_table => (
+		    is =>  'ro',
+                    isa => 'ArrayRef',
+                    traits => [qw(Array)],
+                    handles => {
+                      get_arm_leds => 'get',
+                    },
+                    auto_deref	=> 1,
+                    lazy	=> 1,
+ 		    builder	=> '_get_arm_table',
+                 );
+
+
+sub _get_arm_table
+{
+   my ( $self ) = @_;
+
+   return [
+           [0,1,2,3,4,5],
+           [6,7,8,9,10,11],
+           [12,13,14,15,16,17]
+          ];
+}
+
+=item set_arm
+
+Sets the LEDs in the specified "arm" of the PiGlow to the specified value.
+
+Value has gamma correction applied.  
+
+Update isn't applied and the update method should be called when all the
+required updates have been performed.
+=cut
+
+
+sub set_arm
+{
+    my ( $self, $arm, $value ) = @_;
+
+    if ( defined $arm && ($arm >= 0 && $arm <= 2))
+    {
+         my $arm_leds = $self->get_arm_leds($arm);
+         $self->set_leds($arm_leds, $value);
+    }
+}
+
+=item gamma_table
+
+This is a map of input PWM values (0 - 255) to gamma corrected values
+that produce a more even range of brightness in the LEDs.
+
+The values were lifted from the piglow library for Node.js which in turn
+borrowed them from elsewhere.
+
+=cut
+
+has gamma_table => (
+                      is => 'ro',
+                      isa => 'ArrayRef',
+                      traits => [qw(Array)],
+                      auto_deref => 1,
+                      lazy => 1,
+                      builder => '_get_gamma_table', 
+                      handles => {
+                         map_gamma  => 'get',
+                      },
+                   );
+
+sub _get_gamma_table
+{
+   my ($self) = @_;
+
+   return [
+      0,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+      1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
+      1,   1,   1,   1,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,
+      2,   2,   2,   2,   2,   2,   2,   2,   2,   3,   3,   3,   3,   3,
+      3,   3,   3,   3,   3,   3,   3,   3,   4,   4,   4,   4,   4,   4,
+      4,   4,   4,   4,   4,   5,   5,   5,   5,   5,   5,   5,   5,   6,
+      6,   6,   6,   6,   6,   6,   7,   7,   7,   7,   7,   7,   8,   8,
+      8,   8,   8,   8,   9,   9,   9,   9,   10,  10,  10,  10,  10,  11,
+      11,  11,  11,  12,  12,  12,  13,  13,  13,  13,  14,  14,  14,  15,
+      15,  15,  16,  16,  16,  17,  17,  18,  18,  18,  19,  19,  20,  20,
+      20,  21,  21,  22,  22,  23,  23,  24,  24,  25,  26,  26,  27,  27,
+      28,  29,  29,  30,  31,  31,  32,  33,  33,  34,  35,  36,  36,  37,
+      38,  39,  40,  41,  42,  42,  43,  44,  45,  46,  47,  48,  50,  51,
+      52,  53,  54,  55,  57,  58,  59,  60,  62,  63,  64,  66,  67,  69,
+      70,  72,  74,  75,  77,  79,  80,  82,  84,  86,  88,  90,  91,  94,
+      96,  98,  100, 102, 104, 107, 109, 111, 114, 116, 119, 122, 124, 127,
+      130, 133, 136, 139, 142, 145, 148, 151, 155, 158, 161, 165, 169, 172,
+      176, 180, 184, 188, 192, 196, 201, 205, 210, 214, 219, 224, 229, 234,
+      239, 244, 250, 255
+   ];
+}
+
+=item gamma_fix_values
+
+This applies the gamma adjustment mapping to the supplied array ref.
+
+=cut
+
+sub gamma_fix_values
+{
+   my ( $self, $values ) = @_;
+
+   my @values = map { $self->map_gamma($_) } @{$values};
+
+   return \@values;
 }
 
 =item reset
