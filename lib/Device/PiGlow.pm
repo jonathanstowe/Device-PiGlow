@@ -1,8 +1,15 @@
 package Device::PiGlow;
 
+use strict;
+use warnings;
+
+our $VERSION = '1.0';
+
 use Moose;
 
+
 use Device::SMBus;
+
 
 # These are all the register numbers defined by the device
 use constant CMD_ENABLE_OUTPUT => 0x00;
@@ -51,6 +58,7 @@ Device::PiGlow - Interface to the PiGlow board using i2c
     $pg->reset();
 
 
+See the L<examples> directory for more ways of using this.
 
 =head1 DESCRIPTION
 
@@ -605,6 +613,25 @@ Jonathan Stowe <jns@gellyfish.co.uk>
 
 This is licensed under the same terms as Perl itself.  Please see the
 LICENSE file in the distribution files for the full details.
+
+=head1 SUPPORT
+
+I wrote this because I had the device and I prefer to use Perl.  It
+probably does everything I would like it to do.  If you want it to do
+something else or find a bug or infelicity, please feel free to fork
+the code at github and send me a pull request:
+
+    https://github.com/jonathanstowe/Device-PiGlow
+
+bug reports without patches are likely to be ignored unless you want to
+do do something with it that I think is fun and interesting.
+
+=head1 CREDIT WHERE IT'S DUE
+
+This was largely a no brainer.  The author of L<Device::SMBus> did all the
+hard work on the Perl side and the implementation details were largely
+translated from the PyGlow library. https://github.com/benleb/PyGlow/
+
 
 =head1  SEE ALSO
 
