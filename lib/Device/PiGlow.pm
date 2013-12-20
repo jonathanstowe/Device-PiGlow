@@ -3,7 +3,7 @@ package Device::PiGlow;
 use strict;
 use warnings;
 
-our $VERSION = '1.0';
+our $VERSION = '1.1';
 
 use Moose;
 
@@ -357,7 +357,6 @@ sub _get_ring_table
       foreach my $arm ( 0 .. 2 )
       {
          my $led_no = $self->get_arm_leds($arm)->[$led];
-         warn "Pushing $led_no for ring $led arm $arm";
          push @{$rings->[$led]}, $led_no;
       }
    }
