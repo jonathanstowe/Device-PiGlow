@@ -232,6 +232,23 @@ sub write_all_leds
    }
 }
 
+=item all_off
+
+This is convenience to turn off (set to brightness 0) all the LEDs at
+once.  It calls C<update> immediately.
+
+=cut
+
+sub all_off
+{
+   my ( $self ) = @_;
+
+   my $vals = [];
+   @{$vals} = (0) x 18;
+
+   $self->write_all_leds($vals);
+}
+
 =item set_leds
 
 This sets the leds specified in the array reference in the first argument
@@ -308,6 +325,77 @@ sub _get_led_table
           ];
 }
 
+=item ring_table
+
+The arrangement of the LEDs can be thought of as being arrange logically
+as 6 "rings".  This provides access to the rings indexed 0-5.
+
+=cut
+
+has ring_table => (
+   is      => 'ro',
+   isa     => 'ArrayRef',
+   traits  => [qw(Array)],
+   handles => {
+      get_ring_leds => 'get',
+   },
+   auto_deref => 1,
+   lazy       => 1,
+   builder    => '_get_ring_table',
+);
+
+sub _get_ring_table
+{
+   my ( $self ) = @_;
+
+   my $rings = [];
+
+   foreach my $led ( 0 .. 5 )
+   {
+      $rings->[$led] = [];
+
+      foreach my $arm ( 0 .. 2 )
+      {
+         my $led_no = $self->get_arm_leds($arm)->[$led];
+         warn "Pushing $led_no for ring $led arm $arm";
+         push @{$rings->[$led]}, $led_no;
+      }
+   }
+
+   return $rings;
+}
+
+=item set_ring
+
+Sets all of the LEDs in the logical ring indexed 0 - 5 to the value
+specified.  Gamma correction is applied to the value.
+
+This isn't immediately applied to the LEDs, C<update> should be called
+after all the changes have been applied.
+
+=cut
+
+sub set_ring
+{
+   my ( $self, $ring, $value ) = @_;
+
+   if ($ring >= 0 && $ring <= 5 )
+   {
+      if( defined( my $ring_leds = $self->get_ring_leds($ring) ))
+      {
+         $self->set_leds($ring_leds, $value);
+      }
+      else
+      {
+         warn "no ring defined for $ring";
+      }
+   }
+   else
+   {
+      warn "No ring $ring";
+   }
+}
+
 =item arm_table
 
 This returns an Array Ref of Array references that reference the LEDs in
@@ -316,17 +404,16 @@ each "arm" of the PiGlow.
 =cut
 
 has arm_table => (
-		    is =>  'ro',
-                    isa => 'ArrayRef',
-                    traits => [qw(Array)],
-                    handles => {
-                      get_arm_leds => 'get',
-                    },
-                    auto_deref	=> 1,
-                    lazy	=> 1,
- 		    builder	=> '_get_arm_table',
-                 );
-
+   is      => 'ro',
+   isa     => 'ArrayRef',
+   traits  => [qw(Array)],
+   handles => {
+      get_arm_leds => 'get',
+   },
+   auto_deref => 1,
+   lazy       => 1,
+   builder    => '_get_arm_table',
+);
 
 sub _get_arm_table
 {
